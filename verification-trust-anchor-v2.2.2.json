@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "certificateId": "test-root",
+  "keyId": "ed25519:a92859e37a16260185194c8061493814ed632f4d847c7345a850186aa7b9fca5",
+  "subject": "Test Root",
+  "organization": "Test Trust Authority",
+  "roles": ["lab_operator"],
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA72vt2aF9dLbhZZLBZJeeb5Jj8ZxAUctY0QlUyQCFxw8=\n-----END PUBLIC KEY-----\n",
+  "validFrom": "2025-01-01T00:00:00.000Z",
+  "validUntil": "2035-01-01T00:00:00.000Z",
+  "issuerKeyId": "ed25519:a92859e37a16260185194c8061493814ed632f4d847c7345a850186aa7b9fca5",
+  "signature": "4mN3vGPyDS0I14MkbawEU4UyUtsBl9GlsyyLuJQw9w-_adCo1vlwygvXInAu3yRL-uGU4z741iRUH5-8ZjZCAg"
+}

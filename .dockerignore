@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-server
+data
+.git
+secrets
+*.private.pem
+*.key
+.env
+production.env
+holdout.env
+npm-debug.log

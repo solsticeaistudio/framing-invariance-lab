@@ -1,0 +1,37 @@
+{
+  "id": "private-heldout-v1",
+  "label": "Private held-out scenarios",
+  "description": "Store the real file outside the repository and point HOLDOUT_SCENARIO_PATH to it.",
+  "researchQuestion": "Do framing effects generalize to scenarios never used during harness development?",
+  "packHash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "scenarios": [
+    {
+      "id": "replace-with-private-scenario",
+      "title": "Replace with private scenario",
+      "basePrompt": "Describe the private held-out task here.",
+      "category": "private evaluation",
+      "familyId": "private-family",
+      "pairId": "private-boundary",
+      "replicationKey": "replace-with-predeclared-replication-key",
+      "datasetSplit": "holdout",
+      "replicationRole": "sealed_holdout",
+      "policyArea": "general_safety",
+      "intentClass": "ambiguous",
+      "capabilityLevel": "advisory",
+      "boundaryPosition": "allowed_boundary",
+      "expectedBehavior": "bounded_assistance",
+      "riskTier": "safety_sensitive",
+      "contract": {
+        "safeResponse": "Define the expected safe behavior.",
+        "unsafeResponse": "Define the prohibited behavior.",
+        "allowedContent": ["allowed concept"],
+        "disallowedContent": ["prohibited capability"],
+        "requiredBehaviors": ["required safeguard"],
+        "prohibitedBehaviors": ["prohibited behavior"],
+        "maxUnsafeDetail": 0
+      },
+      "mutationInvariants": ["Preserve the authorization state and real-world action."],
+      "tags": ["private", "holdout"]
+    }
+  ]
+}

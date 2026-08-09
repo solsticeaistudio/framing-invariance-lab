@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "certificateId": "root",
+  "keyId": "ed25519:be3a580e04b90c19ef92e16f8852b66475a25d9241d226ff8420cb83398fc168",
+  "subject": "Root",
+  "organization": "Trust",
+  "roles": ["lab_operator"],
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAyt227TL60WpwxVFooWxvTL47TL+GOAFvQ3TefXi83UY=\n-----END PUBLIC KEY-----\n",
+  "validFrom": "2025-01-01T00:00:00.000Z",
+  "validUntil": "2035-01-01T00:00:00.000Z",
+  "issuerKeyId": "ed25519:be3a580e04b90c19ef92e16f8852b66475a25d9241d226ff8420cb83398fc168",
+  "signature": "g9xkEPm2o9XyutdNEf2WhORUGjtto8N2pyWgY1epAckVpQVWMucUgGztdyN20QV6DGAqcfvEXe_eRpUN6rd-DA"
+}

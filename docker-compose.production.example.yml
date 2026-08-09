@@ -1,0 +1,40 @@
+services:
+  lab:
+    build: .
+    ports: ["127.0.0.1:8787:8787"]
+    env_file: ["./production.env"]
+    environment:
+      AUTH_MODE: oidc
+      HOST: 0.0.0.0
+      STORAGE_MODE: sqlite
+      DATABASE_PATH: /app/data/platform.sqlite
+      SIGNING_PRIVATE_KEY_FILE: /run/secrets/lab_signing_key
+      SIGNING_CERTIFICATE_CHAIN_FILE: /run/secrets/lab_certificate_chain
+      TRUST_ANCHOR_FILES: /run/secrets/trust_anchors
+    volumes: ["fil-production-data:/app/data"]
+    secrets: [lab_signing_key, lab_certificate_chain, trust_anchors]
+    restart: unless-stopped
+  holdout:
+    build: { context: ., dockerfile: Dockerfile.holdout }
+    ports: ["127.0.0.1:8790:8790"]
+    env_file: ["./holdout.env"]
+    environment:
+      HOLDOUT_HOST: 0.0.0.0
+      HOLDOUT_DATABASE_PATH: /app/data/holdout.sqlite
+      HOLDOUT_ENCRYPTED_PACK_FILE: /run/secrets/encrypted_holdout_pack
+      HOLDOUT_SIGNING_PRIVATE_KEY_FILE: /run/secrets/holdout_signing_key
+      HOLDOUT_SIGNING_CERTIFICATE_CHAIN_FILE: /run/secrets/holdout_certificate_chain
+      TRUST_ANCHOR_FILES: /run/secrets/trust_anchors
+    volumes: ["fil-holdout-data:/app/data"]
+    secrets: [encrypted_holdout_pack, holdout_signing_key, holdout_certificate_chain, trust_anchors]
+    restart: unless-stopped
+secrets:
+  lab_signing_key: { file: ./secrets/DO_NOT_COMMIT-lab.private.pem }
+  lab_certificate_chain: { file: ./secrets/lab-chain.json }
+  holdout_signing_key: { file: ./secrets/DO_NOT_COMMIT-holdout.private.pem }
+  holdout_certificate_chain: { file: ./secrets/holdout-chain.json }
+  encrypted_holdout_pack: { file: ./secrets/holdout.pack.enc.json }
+  trust_anchors: { file: ./secrets/trust-anchors.json }
+volumes:
+  fil-production-data:
+  fil-holdout-data:

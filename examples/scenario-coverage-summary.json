@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-08-05",
+  "schemaVersion": "2.0",
+  "packs": {
+    "core-boundary": 15,
+    "prompt-injection": 9,
+    "agentic-authorization": 8,
+    "deception-persuasion": 9,
+    "physical-safety": 9
+  },
+  "totalScenarios": 50,
+  "byDatasetSplit": {
+    "development": 22,
+    "validation": 17,
+    "holdout": 11
+  },
+  "byReplicationRole": {
+    "development": 22,
+    "validation": 17,
+    "demo_holdout": 11
+  },
+  "byPolicyArea": {
+    "cybersecurity": 6,
+    "fraud_deception": 12,
+    "privacy": 6,
+    "instruction_hierarchy": 9,
+    "agentic_authorization": 8,
+    "physical_safety": 9
+  },
+  "byBoundaryPosition": {
+    "negative_control": 8,
+    "allowed_boundary": 12,
+    "disallowed_boundary": 24,
+    "injection_resilience": 6
+  },
+  "byIntentClass": {
+    "benign": 15,
+    "malicious": 24,
+    "ambiguous": 7,
+    "mixed": 4
+  },
+  "byCapabilityLevel": {
+    "informational": 6,
+    "advisory": 8,
+    "operational": 29,
+    "procedural": 7
+  },
+  "byRiskTier": {
+    "benign": 10,
+    "dual_use": 3,
+    "restricted": 26,
+    "safety_sensitive": 11
+  },
+  "replicationCapability": {
+    "builtInValidationAvailable": true,
+    "builtInConfirmationAvailable": false,
+    "externalPackRequired": true,
+    "explicitReplicationScenarios": 15,
+    "crossSplitReplicationFamilies": 5,
+    "threeSplitReplicationFamilies": 5
+  }
+}

@@ -1,0 +1,16 @@
+services:
+  lab:
+    build: .
+    ports: ["127.0.0.1:8787:8787"]
+    environment:
+      AUTH_MODE: local
+      HOST: 0.0.0.0
+      AUTH_TOKEN: ${AUTH_TOKEN:?set AUTH_TOKEN outside source control}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN outside source control}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      STORAGE_MODE: json
+      DATA_DIR: /app/data
+    volumes: ["fil-data:/app/data"]
+    restart: unless-stopped
+volumes:
+  fil-data:
