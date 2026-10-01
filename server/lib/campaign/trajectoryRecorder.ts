@@ -1,4 +1,20 @@
 import { canonicalSha256 } from "../canonicalJson.js";
+function stripUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripUndefined);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, stripUndefined(item)]),
+    );
+  }
+  return value;
+}
+
+function stableHash(value: unknown): string {
+  return canonicalSha256(stripUndefined(value));
+}
+
 import type {
   BoundaryObservation,
   ContextArtifact,
@@ -10,7 +26,7 @@ import type {
 function recomputeTrajectoryHash(
   trajectory: Omit<ConversationTrajectory, "trajectoryHash">,
 ): string {
-  return canonicalSha256({
+  return stableHash({
     schemaVersion: trajectory.schemaVersion,
     id: trajectory.id,
     candidateId: trajectory.candidateId,
@@ -86,9 +102,9 @@ export function appendTrajectoryTurn(
 ): ConversationTrajectory {
   const index = trajectory.turns.length;
   const previousTurnHash = trajectory.turns.at(-1)?.turnHash;
-  const contentHash = canonicalSha256({ content: args.content });
+  const contentHash = stableHash({ content: args.content });
   const createdAt = args.createdAt ?? new Date().toISOString();
-  const turnHash = canonicalSha256({
+  const turnHash = stableHash({
     trajectoryId: trajectory.id,
     index,
     role: args.role,
@@ -144,7 +160,7 @@ export function recordContextArtifact(
     id: args.id,
     kind: args.kind,
     afterTurnIndex: args.afterTurnIndex,
-    contentHash: canonicalSha256({ content: args.content }),
+    contentHash: stableHash({ content: args.content }),
     createdAt,
     provider: args.provider,
     model: args.model,
@@ -191,12 +207,12 @@ export function verifyTrajectoryIntegrity(
       errors.push(`turn ${index}: previous hash mismatch`);
     }
     if (turn.content !== undefined) {
-      const expectedContentHash = canonicalSha256({ content: turn.content });
+      const expectedContentHash = stableHash({ content: turn.content });
       if (expectedContentHash !== turn.contentHash) {
         errors.push(`turn ${index}: content hash mismatch`);
       }
     }
-    const expectedTurnHash = canonicalSha256({
+    const expectedTurnHash = stableHash({
       trajectoryId: trajectory.id,
       index: turn.index,
       role: turn.role,
@@ -215,7 +231,7 @@ export function verifyTrajectoryIntegrity(
 
   for (const artifact of trajectory.contextArtifacts) {
     if (artifact.content !== undefined) {
-      const expected = canonicalSha256({ content: artifact.content });
+      const expected = stableHash({ content: artifact.content });
       if (expected !== artifact.contentHash) {
         errors.push(`artifact ${artifact.id}: content hash mismatch`);
       }
