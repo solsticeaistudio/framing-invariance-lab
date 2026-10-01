@@ -9,3 +9,4 @@ export * from "./reportExport.js";
 export * from "./trajectoryRecorder.js";
 export * from "./compactionAnalysis.js";
 export * from "./trajectoryReplay.js";
+export * from "./trajectoryStore.js";
