@@ -47,7 +47,9 @@
     "oidc:smoke": "vitest run server/lib/oidc.test.ts server/lib/sessions.test.ts server/lib/authorization.test.ts",
     "fixture:verify": "vitest run server/lib/signatures.test.ts server/lib/signedPacks.test.ts server/lib/studyTier.test.ts server/holdout/protocol.test.ts server/lib/artifactService.test.ts server/lib/pdf.test.ts server/lib/archive.test.ts server/lib/publicV2Dtos.test.ts",
     "archive:test": "vitest run server/lib/archive.test.ts server/lib/pdf.test.ts",
-    "lint": "npm run check && npm run format:check"
+    "lint": "npm run check && npm run format:check",
+    "campaign:test": "vitest run server/lib/campaign/campaign.test.ts",
+    "campaign:verify": "vitest run server/lib/campaign/campaign.test.ts && tsc -p tsconfig.server.json --noEmit"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
