@@ -18,7 +18,8 @@ const ORDER: CampaignStage[] = [
 ];
 
 function maxStage(a: CampaignStage, b: CampaignStage): CampaignStage {
-  if (a === "retired" || b === "retired") return a === "retired" ? b : a;
+  if (a === "retired") return "retired";
+  if (b === "retired") return a;
   return ORDER[Math.max(ORDER.indexOf(a), ORDER.indexOf(b))];
 }
 
