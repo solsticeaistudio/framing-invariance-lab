@@ -53,3 +53,62 @@ Sensitive text is opt-in in evidence bundles. The default bundle stores identifi
 ## Non-goals
 
 The campaign layer does not generate exploit content, infer hidden provider configuration, automate scope expansion, or make private-program disclosure decisions. It organizes authorized research already performed by FIL.
+
+
+## Conversation trajectories
+
+Long-form conversational research is recorded as a first-class experimental artifact rather than reduced to a single prompt.
+
+A trajectory contains:
+
+- ordered user/assistant/system/tool turns
+- per-turn content hashes and a chained turn hash
+- provider-visible context artifacts such as compaction summaries
+- boundary observations that can remain uncertain pending expert review
+- a final trajectory hash binding the record together
+
+Sensitive text is optional at the schema level. For private local research, enable it and keep the resulting trajectory directory outside the public repository. Public evidence should generally retain hashes and metadata rather than transcript content.
+
+### Boundary review states
+
+Trajectory observations use a deliberately non-binary review ladder:
+
+```text
+safe
+  -> boundary_approaching
+  -> probable_crossing
+  -> expert_review_required
+  -> confirmed_crossing
+```
+
+This lets a researcher flag an operationally specific response without pretending to possess domain expertise they do not have.
+
+### Compaction as an experimental variable
+
+Provider-visible compaction summaries can be captured as `ContextArtifact` records. FIL can compare summaries from otherwise similar sessions, transplant a recorded summary into a controlled replay, and then test whether downstream behavior changes.
+
+The intended causal workflow is:
+
+```text
+natural trajectory
+  -> capture compaction
+  -> reproduce in a fresh session
+  -> compare successful vs non-successful summaries
+  -> transplant summary
+  -> ablate or add summary features
+  -> test the resulting hypothesis on independent authorized scenarios
+```
+
+A compaction difference is evidence for a hypothesis, not proof of causality. Causal claims require replay/intervention.
+
+### Delta-debugging long conversations
+
+`buildChunkEliminationPlans()` creates a coarse-to-fine sequence of contiguous turn removals. Large sections are tested first, then smaller regions, eventually reaching individual turns. This avoids treating every turn as independently causal.
+
+`summarizeTrajectoryMinimization()` is intentionally conservative: a failed multi-turn removal does not mark every turn in that block as required. A turn is classified as required only when a single-turn removal fails to reproduce the observation.
+
+### Local checkpointing
+
+`persistTrajectoryCheckpoint()` atomically writes both `trajectory.json` and `events.jsonl`. The intended integration point is immediately after each recorded turn or context artifact, before the next model request. The local files, not a chat UI's retained context, should be treated as the source of truth for the experiment.
+
+Provider adapters should capture only context artifacts actually exposed by the provider. A visible thinking summary may be stored as a `thinking_summary` artifact, but FIL must not treat it as hidden chain-of-thought or as a complete account of model reasoning.
