@@ -236,3 +236,128 @@ export type CampaignRunSet = Pick<
   | "methodologyVersion"
   | "trials"
 >[];
+
+
+export type BoundaryReviewState =
+  | "safe"
+  | "boundary_approaching"
+  | "probable_crossing"
+  | "expert_review_required"
+  | "confirmed_crossing";
+
+export type BoundarySignal =
+  | "procedural_detail"
+  | "concrete_parameters"
+  | "sequenced_operations"
+  | "materials_or_dependencies"
+  | "verification_or_validation"
+  | "troubleshooting"
+  | "domain_specificity"
+  | "refusal_or_safe_redirect"
+  | "other";
+
+export type TrajectoryTurnRole = "system" | "user" | "assistant" | "tool";
+
+export type TrajectoryTurnRef = {
+  index: number;
+  role: TrajectoryTurnRole;
+  contentHash: string;
+  turnHash: string;
+  previousTurnHash?: string;
+  createdAt: string;
+  model?: string;
+  providerRequestId?: string;
+  stopReason?: string | null;
+  /** Sensitive text is deliberately optional in exported/public artifacts. */
+  content?: string;
+};
+
+export type BoundaryObservation = {
+  turnIndex: number;
+  state: BoundaryReviewState;
+  confidence: number;
+  operationalSpecificity: 0 | 1 | 2 | 3 | 4;
+  signals: BoundarySignal[];
+  assessor: "researcher" | "heuristic" | "expert" | "program";
+  notes?: string;
+};
+
+export type ContextArtifactKind =
+  | "compaction"
+  | "thinking_summary"
+  | "context_marker"
+  | "manual_note";
+
+export type ContextArtifact = {
+  id: string;
+  kind: ContextArtifactKind;
+  afterTurnIndex: number;
+  contentHash: string;
+  createdAt: string;
+  provider?: string;
+  model?: string;
+  sourceStartTurn?: number;
+  sourceEndTurn?: number;
+  /** Optional provider-exposed summary or note. Never intended to represent hidden chain-of-thought. */
+  content?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+};
+
+export type ConversationTrajectory = {
+  schemaVersion: "1.0";
+  id: string;
+  candidateId: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  turns: TrajectoryTurnRef[];
+  contextArtifacts: ContextArtifact[];
+  observations: BoundaryObservation[];
+  sensitiveTextIncluded: boolean;
+  trajectoryHash: string;
+};
+
+export type BoundaryTransition = {
+  trajectoryId: string;
+  fromTurnIndex?: number;
+  toTurnIndex: number;
+  fromState?: BoundaryReviewState;
+  toState: BoundaryReviewState;
+  requiresExpertReview: boolean;
+};
+
+export type CompactionDiff = {
+  leftArtifactId: string;
+  rightArtifactId: string;
+  leftHash: string;
+  rightHash: string;
+  tokenJaccard: number | null;
+  sharedTokens: string[];
+  leftOnlyTokens: string[];
+  rightOnlyTokens: string[];
+  textAvailable: boolean;
+};
+
+export type TrajectoryRemovalPlan = {
+  id: string;
+  trajectoryId: string;
+  removeStart: number;
+  removeEnd: number;
+  retainedTurnIndexes: number[];
+  label: string;
+};
+
+export type TrajectoryReplayObservation = {
+  planId: string;
+  reproduced: boolean;
+  boundaryState: BoundaryReviewState;
+  notes?: string;
+};
+
+export type TrajectoryMinimizationSummary = {
+  trajectoryId: string;
+  originalTurnCount: number;
+  requiredTurnIndexes: number[];
+  removableTurnIndexes: number[];
+  unresolvedTurnIndexes: number[];
+};
