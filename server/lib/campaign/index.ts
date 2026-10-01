@@ -6,3 +6,6 @@ export * from "./perturbation.js";
 export * from "./minimization.js";
 export * from "./evidenceBundle.js";
 export * from "./reportExport.js";
+export * from "./trajectoryRecorder.js";
+export * from "./compactionAnalysis.js";
+export * from "./trajectoryReplay.js";
