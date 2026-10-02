@@ -57,6 +57,10 @@ The campaign layer does not generate exploit content, infer hidden provider conf
 
 ## Conversation trajectories
 
+DeltaStore is the preferred persistence backend for long-form trajectory research. The local trajectory helpers remain the portable evidence model and fallback, while DeltaStore owns durable lineage, branching, and reconstructed state. See `docs/DELTASTORE_RESEARCH_BACKEND.md`.
+
+
+
 Long-form conversational research is recorded as a first-class experimental artifact rather than reduced to a single prompt.
 
 A trajectory contains:
