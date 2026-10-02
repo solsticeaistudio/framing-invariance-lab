@@ -10,3 +10,4 @@ export * from "./trajectoryRecorder.js";
 export * from "./compactionAnalysis.js";
 export * from "./trajectoryReplay.js";
 export * from "./trajectoryStore.js";
+export * from "./deltaStoreBridge.js";\nexport * from "./deltaStoreTrajectoryBackend.js";\n
