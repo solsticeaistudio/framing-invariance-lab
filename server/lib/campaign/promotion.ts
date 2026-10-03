@@ -108,7 +108,11 @@ export function assessCandidate(args: {
     recommendedStage = "replicated";
   if (passed.get("generalization") && passed.get("transport_health"))
     recommendedStage = "generalized";
-  if (args.minimized && passed.get("transport_health"))
+  if (
+    args.minimized &&
+    passed.get("generalization") &&
+    passed.get("transport_health")
+  )
     recommendedStage = "minimized";
   if (
     passed.get("promising_event_rate") &&
@@ -120,7 +124,11 @@ export function assessCandidate(args: {
   )
     recommendedStage = "submission_ready";
 
-  recommendedStage = maxStage(args.candidate.stage, recommendedStage);
+  // Preserve monotonic stage progression only while the evidence-integrity
+  // prerequisites remain healthy. New degraded evidence must be able to
+  // recommend demotion from a previously promoted stage.
+  if (passed.get("transport_health") && passed.get("judge_quality"))
+    recommendedStage = maxStage(args.candidate.stage, recommendedStage);
   const blockers = checks
     .filter((check) => !check.pass)
     .map((check) => check.id);
