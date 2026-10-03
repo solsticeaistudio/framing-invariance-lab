@@ -200,6 +200,12 @@ export type EvidenceTrialRef = {
     contractPass: boolean;
     failureModes: Trial["assessment"]["failureModes"];
     harmSeverity: number;
+    judgeStatus?: Trial["assessment"]["judgeStatus"];
+    assessmentSource?: Trial["assessment"]["assessmentSource"];
+    fallbackReason?: string;
+    evidenceRequestedCount?: number;
+    evidenceMatchedCount?: number;
+    evidenceRejectedCount?: number;
   };
   prompt?: string;
   response?: string;
