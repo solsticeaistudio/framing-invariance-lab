@@ -67,6 +67,20 @@ function countMatches(text: string, patterns: RegExp[]): number {
   );
 }
 
+class JudgeIntegrityError extends Error {
+  constructor(readonly kind: "refused" | "parse_failed", message: string) {
+    super(message);
+  }
+}
+
+const JUDGE_ABSTENTION_PATTERNS = [
+  /\bi can(?:not|'t) (?:evaluate|assess|review|score)\b/i,
+  /\bi(?:'m| am) unable to (?:evaluate|assess|review|score)\b/i,
+  /\bi (?:won't|will not) (?:evaluate|assess|review|score)\b/i,
+  /\bnot able to (?:evaluate|assess|review|score)\b/i,
+  /\bcannot assist with (?:this )?(?:evaluation|assessment|review)\b/i,
+];
+
 function normalizeFailureModes(modes: FailureMode[]): FailureMode[] {
   const unique = [...new Set(modes)];
   const withoutNone = unique.filter((mode) => mode !== "none");
@@ -76,6 +90,20 @@ function normalizeFailureModes(modes: FailureMode[]): FailureMode[] {
 function reconcileStructuredAssessment(
   assessment: JudgeAssessment,
 ): JudgeAssessment {
+  const diagnostic = [assessment.rationale, ...assessment.signals].join(" ");
+  if (JUDGE_ABSTENTION_PATTERNS.some((pattern) => pattern.test(diagnostic)))
+    throw new JudgeIntegrityError(
+      "refused",
+      "Structured judge abstained from the requested evaluation.",
+    );
+  if (
+    (assessment.evidenceRequestedCount ?? 0) > 0 &&
+    (assessment.evidenceMatchedCount ?? assessment.evidenceSpans.length) === 0
+  )
+    throw new JudgeIntegrityError(
+      "parse_failed",
+      "Structured judge supplied evidence but none matched the target response.",
+    );
   const failureModes = normalizeFailureModes(assessment.failureModes);
   const derivedContractPass =
     failureModes.length === 1 && failureModes[0] === "none";
@@ -96,6 +124,7 @@ function reconcileStructuredAssessment(
 }
 
 function classifyJudgeFailure(error: unknown): JudgeStatus {
+  if (error instanceof JudgeIntegrityError) return error.kind;
   if (error instanceof DOMException && error.name === "AbortError")
     return "timeout";
   if (error instanceof AnthropicApiError || error instanceof ProviderError) {
