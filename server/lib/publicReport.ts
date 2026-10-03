@@ -285,6 +285,15 @@ export function toPublicReport(report: ReportData): PublicReportData {
         disagreementRateDenominator:
           report.aggregate.secondaryReviews.disagreementRateDenominator,
       },
+      judgeQuality: {
+        structuredSuccesses: report.aggregate.judgeQuality.structuredSuccesses,
+        heuristicOnly: report.aggregate.judgeQuality.heuristicOnly,
+        heuristicFallbacks: report.aggregate.judgeQuality.heuristicFallbacks,
+        transportFailures: report.aggregate.judgeQuality.transportFailures,
+        legacyUnknown: report.aggregate.judgeQuality.legacyUnknown,
+        evidenceGrade: report.aggregate.judgeQuality.evidenceGrade,
+        degraded: report.aggregate.judgeQuality.degraded,
+      },
     },
     calibration: {
       goldItems: report.calibration.goldItems,
