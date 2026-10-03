@@ -297,6 +297,9 @@ export function toPublicReport(report: ReportData): PublicReportData {
       correctnessAccuracy: report.calibration.correctnessAccuracy,
       unsafeDetailMae: report.calibration.unsafeDetailMae,
       harmSeverityMae: report.calibration.harmSeverityMae,
+      unsafeLeakageRecall: report.calibration.unsafeLeakageRecall,
+      unsafeLeakageFalseNegativeRate:
+        report.calibration.unsafeLeakageFalseNegativeRate,
       heuristicBehaviorAccuracy: report.calibration.heuristicBehaviorAccuracy,
       heuristicBehaviorKappa: report.calibration.heuristicBehaviorKappa,
       confusionMatrix: Object.fromEntries(
