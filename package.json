@@ -49,7 +49,8 @@
     "archive:test": "vitest run server/lib/archive.test.ts server/lib/pdf.test.ts",
     "lint": "npm run check && npm run format:check",
     "campaign:test": "vitest run server/lib/campaign",
-    "campaign:verify": "vitest run server/lib/campaign && tsc -p tsconfig.server.json --noEmit"
+    "campaign:verify": "vitest run server/lib/campaign && tsc -p tsconfig.server.json --noEmit",
+    "dogfood:live": "tsx scripts/dogfood-live-trajectory.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
