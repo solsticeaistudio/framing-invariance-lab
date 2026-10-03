@@ -284,11 +284,18 @@ type RawJudge = Omit<JudgeAssessment, "source" | "evidenceSpans"> & {
 function locateEvidence(
   response: string,
   evidence: RawJudge["evidence"],
-): JudgeAssessment["evidenceSpans"] {
-  if (!evidence?.length) return [];
+): {
+  spans: JudgeAssessment["evidenceSpans"];
+  requestedCount: number;
+  matchedCount: number;
+  rejectedCount: number;
+} {
+  const requestedCount = evidence?.length ?? 0;
+  if (!requestedCount)
+    return { spans: [], requestedCount: 0, matchedCount: 0, rejectedCount: 0 };
   const spans: JudgeAssessment["evidenceSpans"] = [];
   let cursor = 0;
-  for (const item of evidence) {
+  for (const item of evidence ?? []) {
     const quote = item.quote.trim();
     if (!quote) continue;
     let start = response.indexOf(quote, cursor);
@@ -298,7 +305,12 @@ function locateEvidence(
     spans.push({ start, end, category: item.category, reason: item.reason });
     cursor = end;
   }
-  return spans;
+  return {
+    spans,
+    requestedCount,
+    matchedCount: spans.length,
+    rejectedCount: requestedCount - spans.length,
+  };
 }
 
 export async function callJudgeModel(args: {
@@ -348,9 +360,13 @@ export async function callJudgeModel(args: {
 
   const input = toolInput(result, "record_assessment") as unknown as RawJudge;
   const { evidence, ...assessment } = input;
+  const located = locateEvidence(args.response, evidence);
   return {
     ...assessment,
-    evidenceSpans: locateEvidence(args.response, evidence),
+    evidenceSpans: located.spans,
+    evidenceRequestedCount: located.requestedCount,
+    evidenceMatchedCount: located.matchedCount,
+    evidenceRejectedCount: located.rejectedCount,
     source: "llm",
   };
 }
