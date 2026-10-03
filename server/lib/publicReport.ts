@@ -285,6 +285,15 @@ export function toPublicReport(report: ReportData): PublicReportData {
         disagreementRateDenominator:
           report.aggregate.secondaryReviews.disagreementRateDenominator,
       },
+      judgeQuality: {
+        structuredSuccesses: report.aggregate.judgeQuality.structuredSuccesses,
+        heuristicOnly: report.aggregate.judgeQuality.heuristicOnly,
+        heuristicFallbacks: report.aggregate.judgeQuality.heuristicFallbacks,
+        transportFailures: report.aggregate.judgeQuality.transportFailures,
+        legacyUnknown: report.aggregate.judgeQuality.legacyUnknown,
+        evidenceGrade: report.aggregate.judgeQuality.evidenceGrade,
+        degraded: report.aggregate.judgeQuality.degraded,
+      },
     },
     calibration: {
       goldItems: report.calibration.goldItems,
@@ -297,6 +306,9 @@ export function toPublicReport(report: ReportData): PublicReportData {
       correctnessAccuracy: report.calibration.correctnessAccuracy,
       unsafeDetailMae: report.calibration.unsafeDetailMae,
       harmSeverityMae: report.calibration.harmSeverityMae,
+      unsafeLeakageRecall: report.calibration.unsafeLeakageRecall,
+      unsafeLeakageFalseNegativeRate:
+        report.calibration.unsafeLeakageFalseNegativeRate,
       heuristicBehaviorAccuracy: report.calibration.heuristicBehaviorAccuracy,
       heuristicBehaviorKappa: report.calibration.heuristicBehaviorKappa,
       confusionMatrix: Object.fromEntries(
@@ -526,6 +538,16 @@ const KEYS = {
     "judgeDisagreementRate",
     "secondaryJudgeDisagreementRate",
     "secondaryReviews",
+    "judgeQuality",
+  ],
+  judgeQuality: [
+    "structuredSuccesses",
+    "heuristicOnly",
+    "heuristicFallbacks",
+    "transportFailures",
+    "legacyUnknown",
+    "evidenceGrade",
+    "degraded",
   ],
   secondary: [
     "eligibleTrials",
@@ -643,6 +665,8 @@ const KEYS = {
     "correctnessAccuracy",
     "unsafeDetailMae",
     "harmSeverityMae",
+    "unsafeLeakageRecall",
+    "unsafeLeakageFalseNegativeRate",
     "heuristicBehaviorAccuracy",
     "heuristicBehaviorKappa",
     "confusionMatrix",
@@ -783,6 +807,12 @@ function validatePublicReportShapeUnsafe(
     report.aggregate.secondaryReviews,
     KEYS.secondary,
     "report.aggregate.secondaryReviews",
+    issues,
+  );
+  exactKeys(
+    report.aggregate.judgeQuality,
+    KEYS.judgeQuality,
+    "report.aggregate.judgeQuality",
     issues,
   );
   for (const [groupName, findings] of [

@@ -5,6 +5,7 @@ import type {
   CampaignEventMode,
   TechniqueCandidate,
 } from "./types.js";
+import { isEvidenceGradeAssessment } from "../judgeQuality.js";
 
 function isEvent(trial: Trial, mode: CampaignEventMode): boolean {
   if (trial.assessment.behavior === "error") return false;
@@ -56,8 +57,12 @@ export function buildBreadthMatrix(args: {
       const completed = rows.filter(
         ({ trial }) => trial.assessment.behavior !== "error",
       );
+      const promotable = completed.filter(({ trial }) =>
+        isEvidenceGradeAssessment(trial.assessment),
+      );
+      const degradedTrials = completed.length - promotable.length;
       const transportErrors = rows.length - completed.length;
-      const eventTrials = completed.filter(({ trial }) =>
+      const eventTrials = promotable.filter(({ trial }) =>
         isEvent(trial, args.eventMode),
       ).length;
       return {
@@ -65,14 +70,16 @@ export function buildBreadthMatrix(args: {
         scenarioTopic: rows[0].trial.scenarioTopic,
         variantFingerprint: rows[0].trial.variant.fingerprint,
         completedTrials: completed.length,
+        promotableTrials: promotable.length,
+        degradedTrials,
         eventTrials,
-        eventRate: completed.length ? eventTrials / completed.length : 0,
+        eventRate: promotable.length ? eventTrials / promotable.length : 0,
         transportErrors,
         meanHarmSeverity: mean(
-          completed.map(({ trial }) => trial.assessment.harmSeverity),
+          promotable.map(({ trial }) => trial.assessment.harmSeverity),
         ),
         responseHashes: [
-          ...new Set(completed.map(({ trial }) => trial.responseHash)),
+          ...new Set(promotable.map(({ trial }) => trial.responseHash)),
         ].sort(),
       };
     })
@@ -89,26 +96,46 @@ export function buildBreadthMatrix(args: {
       (sum, row) => sum + row.completedTrials,
       0,
     );
+    const promotableTrials = rows.reduce(
+      (sum, row) => sum + row.promotableTrials,
+      0,
+    );
+    const degradedTrials = rows.reduce(
+      (sum, row) => sum + row.degradedTrials,
+      0,
+    );
     const eventTrials = rows.reduce((sum, row) => sum + row.eventTrials, 0);
     const transportErrors = rows.reduce(
       (sum, row) => sum + row.transportErrors,
       0,
     );
-    const eventRate = completedTrials ? eventTrials / completedTrials : 0;
+    const eventRate = promotableTrials ? eventTrials / promotableTrials : 0;
     return {
       scenarioId,
       scenarioTopic: rows[0]?.scenarioTopic ?? scenarioId,
       completedTrials,
+      promotableTrials,
+      degradedTrials,
       eventTrials,
       eventRate,
       transportErrors,
-      qualifying: eventRate >= args.qualifyingScenarioEventRate,
+      qualifying:
+        promotableTrials > 0 &&
+        eventRate >= args.qualifyingScenarioEventRate,
       variantFingerprints: rows.map((row) => row.variantFingerprint).sort(),
     };
   });
 
   const completedTrials = cells.reduce(
     (sum, cell) => sum + cell.completedTrials,
+    0,
+  );
+  const promotableTrials = cells.reduce(
+    (sum, cell) => sum + cell.promotableTrials,
+    0,
+  );
+  const degradedTrials = cells.reduce(
+    (sum, cell) => sum + cell.degradedTrials,
     0,
   );
   const eventTrials = cells.reduce((sum, cell) => sum + cell.eventTrials, 0);
@@ -125,8 +152,13 @@ export function buildBreadthMatrix(args: {
     cells,
     scenarios,
     completedTrials,
+    promotableTrials,
+    degradedTrials,
+    degradedAssessmentRate: completedTrials
+      ? degradedTrials / completedTrials
+      : 0,
     eventTrials,
-    eventRate: completedTrials ? eventTrials / completedTrials : 0,
+    eventRate: promotableTrials ? eventTrials / promotableTrials : 0,
     transportErrors,
     transportErrorRate: attempted ? transportErrors / attempted : 0,
     distinctScenarios: scenarios.length,

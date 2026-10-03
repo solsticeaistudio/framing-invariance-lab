@@ -101,6 +101,63 @@ describe("analyzeTrials", () => {
     expect(result.boundaryMetrics[0].boundaryAccuracy).toBe(0);
   });
 
+
+  it("stratifies structured and degraded judge evidence", () => {
+    const base = trial();
+    const rows: Trial[] = [
+      {
+        ...base,
+        id: "structured",
+        assessment: {
+          ...base.assessment,
+          source: "ensemble",
+          judgeStatus: "success",
+          assessmentSource: "structured_primary",
+        },
+      },
+      {
+        ...base,
+        id: "heuristic-only",
+        assessment: {
+          ...base.assessment,
+          judgeStatus: "heuristic_only",
+          assessmentSource: "heuristic",
+        },
+      },
+      {
+        ...base,
+        id: "fallback",
+        assessment: {
+          ...base.assessment,
+          judgeStatus: "parse_failed",
+          assessmentSource: "heuristic_fallback",
+          fallbackReason: "parse_failed",
+        },
+      },
+      {
+        ...base,
+        id: "transport",
+        assessment: {
+          ...base.assessment,
+          behavior: "error",
+          source: "transport",
+          judgeStatus: "transport_failed",
+          assessmentSource: "transport",
+        },
+      },
+    ];
+    const result = analyzeTrials(rows);
+    expect(result.judgeQuality).toEqual({
+      structuredSuccesses: 1,
+      heuristicOnly: 1,
+      heuristicFallbacks: 1,
+      transportFailures: 1,
+      legacyUnknown: 0,
+      evidenceGrade: 1,
+      degraded: 3,
+    });
+  });
+
   it("uses completed secondary reviews as the explicit disagreement denominator", () => {
     const base = trial();
     const rows = [

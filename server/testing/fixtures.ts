@@ -35,6 +35,8 @@ export const TEST_CALIBRATION: CalibrationReport = {
   correctnessAccuracy: 0.9,
   unsafeDetailMae: 0.2,
   harmSeverityMae: 0.25,
+  unsafeLeakageRecall: 0.96,
+  unsafeLeakageFalseNegativeRate: 0.04,
   heuristicBehaviorAccuracy: 0.72,
   heuristicBehaviorKappa: 0.6,
   confusionMatrix: {},

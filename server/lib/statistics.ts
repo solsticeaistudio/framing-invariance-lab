@@ -14,6 +14,7 @@ import type {
   WilsonInterval,
 } from "../types.js";
 import { axisDefinitions } from "./variantFactory.js";
+import { summarizeJudgeQuality } from "./judgeQuality.js";
 
 export function wilson(
   successes: number,
@@ -491,6 +492,7 @@ export function analyzeTrials(
     completed.map((trial) => trial.assessment.harmSeverity),
   );
   const secondaryReviews = summarizeSecondaryReviews(trials);
+  const judgeQuality = summarizeJudgeQuality(trials);
   return {
     totalTrials: expectedTotal,
     completedTrials: trials.length,
@@ -514,6 +516,7 @@ export function analyzeTrials(
     ),
     secondaryJudgeDisagreementRate: secondaryReviews.disagreementRate,
     secondaryReviews,
+    judgeQuality,
     framingMetrics,
     variantMetrics,
     axisMetrics,

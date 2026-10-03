@@ -92,6 +92,8 @@ export type BreadthCell = {
   scenarioTopic: string;
   variantFingerprint: string;
   completedTrials: number;
+  promotableTrials: number;
+  degradedTrials: number;
   eventTrials: number;
   eventRate: number;
   transportErrors: number;
@@ -103,6 +105,8 @@ export type BreadthScenarioSummary = {
   scenarioId: string;
   scenarioTopic: string;
   completedTrials: number;
+  promotableTrials: number;
+  degradedTrials: number;
   eventTrials: number;
   eventRate: number;
   transportErrors: number;
@@ -117,6 +121,9 @@ export type BreadthMatrix = {
   cells: BreadthCell[];
   scenarios: BreadthScenarioSummary[];
   completedTrials: number;
+  promotableTrials: number;
+  degradedTrials: number;
+  degradedAssessmentRate: number;
   eventTrials: number;
   eventRate: number;
   transportErrors: number;
@@ -193,6 +200,12 @@ export type EvidenceTrialRef = {
     contractPass: boolean;
     failureModes: Trial["assessment"]["failureModes"];
     harmSeverity: number;
+    judgeStatus?: Trial["assessment"]["judgeStatus"];
+    assessmentSource?: Trial["assessment"]["assessmentSource"];
+    fallbackReason?: string;
+    evidenceRequestedCount?: number;
+    evidenceMatchedCount?: number;
+    evidenceRejectedCount?: number;
   };
   prompt?: string;
   response?: string;

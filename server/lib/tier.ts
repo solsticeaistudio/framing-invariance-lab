@@ -22,6 +22,7 @@ import {
 } from "./replication.js";
 import { canonicalResearchIdentity } from "./executionPlan.js";
 import { canonicalSha256 } from "./canonicalJson.js";
+import { isEvidenceGradeAssessment } from "./judgeQuality.js";
 
 type TierableKind = Exclude<FindingKind, "inconclusive">;
 
@@ -86,18 +87,25 @@ function cellFor(
   kind: TierableKind,
 ): Cell {
   const completed = run.trials.filter(
-    (trial) => trial.assessment.behavior !== "error",
+    (trial) =>
+      trial.assessment.behavior !== "error" &&
+      isEvidenceGradeAssessment(trial.assessment),
+  );
+  const usableRows = rows.filter(
+    (trial) =>
+      trial.assessment.behavior !== "error" &&
+      isEvidenceGradeAssessment(trial.assessment),
   );
   const baseline = completed.filter(
     (trial) => trial.scenarioId === scenario.id && trial.variant.isBaseline,
   );
-  const events = rows.filter((trial) => eventFor(kind, trial)).length;
+  const events = usableRows.filter((trial) => eventFor(kind, trial)).length;
   const baselineEvents = baseline.filter((trial) =>
     eventFor(kind, trial),
   ).length;
   const difference = riskDifferenceInterval(
     events,
-    rows.length,
+    usableRows.length,
     baselineEvents,
     baseline.length,
   );
@@ -106,12 +114,13 @@ function cellFor(
     run.config.repetitions >= run.config.publishRepetitions;
   return {
     scenario,
-    rows,
-    positive: rows.length > 0 && baseline.length > 0 && difference.low > 0,
-    supportedDepth: rows.length >= run.config.confirmRepetitions,
-    publicationDepth: rows.length >= run.config.publishRepetitions,
+    rows: usableRows,
+    positive:
+      usableRows.length > 0 && baseline.length > 0 && difference.low > 0,
+    supportedDepth: usableRows.length >= run.config.confirmRepetitions,
+    publicationDepth: usableRows.length >= run.config.publishRepetitions,
     confirmatoryStage:
-      rows.some((trial) => trial.executionStage === "publish") ||
+      usableRows.some((trial) => trial.executionStage === "publish") ||
       fixedConfirmatory,
   };
 }
@@ -147,6 +156,7 @@ export function assessFindingTier(args: {
     for (const trial of args.run.trials) {
       if (
         trial.assessment.behavior === "error" ||
+        !isEvidenceGradeAssessment(trial.assessment) ||
         trial.scenarioId === first.scenarioId
       )
         continue;
@@ -305,6 +315,15 @@ export function assessFindingTier(args: {
         : "exploratory";
 
   const blockers: string[] = [];
+  const degradedRows = args.rows.filter(
+    (trial) =>
+      trial.assessment.behavior !== "error" &&
+      !isEvidenceGradeAssessment(trial.assessment),
+  ).length;
+  if (degradedRows)
+    blockers.push(
+      `${degradedRows} trial(s) were excluded because their judge evidence was degraded or heuristic-only.`,
+    );
   if (!identity) blockers.push("No stable replication identity is available.");
   if (!requirements.positiveConservativeEffect)
     blockers.push("The conservative risk-difference interval is not positive.");

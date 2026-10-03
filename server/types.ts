@@ -236,6 +236,25 @@ export type JudgeSnapshot = {
   confidence: number;
 };
 
+export type JudgeStatus =
+  | "success"
+  | "refused"
+  | "parse_failed"
+  | "transport_failed"
+  | "timeout"
+  | "unavailable"
+  | "heuristic_only"
+  | "legacy_unknown";
+
+export type AssessmentSource =
+  | "structured_primary"
+  | "structured_ensemble"
+  | "heuristic"
+  | "heuristic_fallback"
+  | "transport"
+  | "deterministic_canary"
+  | "legacy_unknown";
+
 export type JudgeAssessment = {
   behavior: BehaviorLabel;
   policyCorrectness: CorrectnessLabel;
@@ -250,6 +269,16 @@ export type JudgeAssessment = {
   signals: string[];
   evidenceSpans: EvidenceSpan[];
   source: "ensemble" | "llm" | "heuristic" | "transport";
+  /** Execution status of the requested judge path. Missing only on legacy records. */
+  judgeStatus?: JudgeStatus;
+  /** Explicit evidence source so fallback scoring cannot masquerade as a structured judgment. */
+  assessmentSource?: AssessmentSource;
+  /** Sanitized machine-readable reason when a structured judge was not used. */
+  fallbackReason?: string;
+  /** Evidence accounting distinguishes no evidence from unmatched/hallucinated evidence. */
+  evidenceRequestedCount?: number;
+  evidenceMatchedCount?: number;
+  evidenceRejectedCount?: number;
   disagreement?: boolean;
   heuristicBehavior?: BehaviorLabel;
   heuristicPolicyCorrectness?: CorrectnessLabel;
@@ -457,6 +486,16 @@ export type SplitMetric = {
   meanHarmSeverity: number;
 };
 
+export type JudgeQualitySummary = {
+  structuredSuccesses: number;
+  heuristicOnly: number;
+  heuristicFallbacks: number;
+  transportFailures: number;
+  legacyUnknown: number;
+  evidenceGrade: number;
+  degraded: number;
+};
+
 export type RunAnalysis = {
   totalTrials: number;
   completedTrials: number;
@@ -473,6 +512,7 @@ export type RunAnalysis = {
   judgeDisagreementRate: number;
   secondaryJudgeDisagreementRate: number;
   secondaryReviews: SecondaryReviewSummary;
+  judgeQuality: JudgeQualitySummary;
   framingMetrics: FramingMetric[];
   variantMetrics: VariantMetric[];
   axisMetrics: AxisMetric[];
@@ -600,10 +640,31 @@ export type CalibrationReport = {
   correctnessAccuracy: number;
   unsafeDetailMae: number;
   harmSeverityMae: number;
+  unsafeLeakageRecall: number;
+  unsafeLeakageFalseNegativeRate: number;
   heuristicBehaviorAccuracy: number;
   heuristicBehaviorKappa: number;
   confusionMatrix: Record<string, Record<string, number>>;
   classMetrics: ClassMetric[];
+};
+
+export type CalibrationGateResult = {
+  pass: boolean;
+  thresholds: {
+    minAdjudicatedItems: number;
+    minBehaviorKappa: number;
+    minUnsafeLeakageRecall: number;
+    maxUnsafeLeakageFalseNegativeRate: number;
+    maxUnsafeDetailMae: number;
+  };
+  observed: {
+    adjudicatedItems: number;
+    behaviorKappa: number;
+    unsafeLeakageRecall: number;
+    unsafeLeakageFalseNegativeRate: number;
+    unsafeDetailMae: number;
+  };
+  blockers: string[];
 };
 
 export type ComparisonMetric = {
@@ -826,6 +887,7 @@ export type ReportData = {
     judgeDisagreementRate: number;
     secondaryJudgeDisagreementRate: number;
     secondaryReviews: SecondaryReviewSummary;
+    judgeQuality: JudgeQualitySummary;
   };
   calibration: CalibrationReport;
   findings: ReportFinding[];

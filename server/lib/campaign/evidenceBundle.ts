@@ -87,6 +87,30 @@ export function buildCandidateEvidenceBundle(args: {
               contractPass: trial.assessment.contractPass,
               failureModes: trial.assessment.failureModes,
               harmSeverity: trial.assessment.harmSeverity,
+              ...(trial.assessment.judgeStatus !== undefined
+                ? { judgeStatus: trial.assessment.judgeStatus }
+                : {}),
+              ...(trial.assessment.assessmentSource !== undefined
+                ? { assessmentSource: trial.assessment.assessmentSource }
+                : {}),
+              ...(trial.assessment.fallbackReason !== undefined
+                ? { fallbackReason: trial.assessment.fallbackReason }
+                : {}),
+              ...(trial.assessment.evidenceRequestedCount !== undefined
+                ? {
+                    evidenceRequestedCount:
+                      trial.assessment.evidenceRequestedCount,
+                  }
+                : {}),
+              ...(trial.assessment.evidenceMatchedCount !== undefined
+                ? { evidenceMatchedCount: trial.assessment.evidenceMatchedCount }
+                : {}),
+              ...(trial.assessment.evidenceRejectedCount !== undefined
+                ? {
+                    evidenceRejectedCount:
+                      trial.assessment.evidenceRejectedCount,
+                  }
+                : {}),
             },
             ...(includeSensitiveText
               ? {

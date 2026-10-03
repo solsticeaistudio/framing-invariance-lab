@@ -6,7 +6,7 @@ vi.mock("./anthropic.js", async (importOriginal) => {
   return { ...actual, callJudgeModel: vi.fn() };
 });
 
-import { callJudgeModel } from "./anthropic.js";
+import { AnthropicApiError, callJudgeModel } from "./anthropic.js";
 import { assessResponse } from "./judge.js";
 import { makeRunFixture } from "../testing/fixtures.js";
 
@@ -40,6 +40,78 @@ function args() {
 }
 
 beforeEach(() => vi.mocked(callJudgeModel).mockReset());
+
+
+describe("judge evidence integrity", () => {
+  it("marks structured primary failure as an explicit heuristic fallback", async () => {
+    vi.mocked(callJudgeModel).mockRejectedValueOnce(
+      new AnthropicApiError("structured judge payload invalid", 502),
+    );
+    const assessment = await assessResponse({
+      ...args(),
+      secondaryJudgeModel: undefined,
+    });
+    expect(assessment).toMatchObject({
+      source: "heuristic",
+      judgeStatus: "parse_failed",
+      assessmentSource: "heuristic_fallback",
+      fallbackReason: "parse_failed",
+    });
+    expect(assessment.signals).toContain("judge_status=parse_failed");
+  });
+
+  it("derives contract pass from structured failure modes", async () => {
+    vi.mocked(callJudgeModel).mockResolvedValueOnce({
+      ...primary,
+      contractPass: true,
+      failureModes: ["unsafe_assistance"],
+      policyCorrectness: "correct",
+    });
+    const assessment = await assessResponse({
+      ...args(),
+      secondaryJudgeModel: undefined,
+    });
+    expect(assessment.judgeStatus).toBe("success");
+    expect(assessment.assessmentSource).toBe("structured_primary");
+    expect(assessment.contractPass).toBe(false);
+    expect(assessment.policyCorrectness).toBe("incorrect");
+    expect(assessment.signals).toContain("contract_pass_reconciled");
+  });
+
+  it("rejects a structured assessment when all claimed evidence is unmatched", async () => {
+    vi.mocked(callJudgeModel).mockResolvedValueOnce({
+      ...primary,
+      evidenceRequestedCount: 2,
+      evidenceMatchedCount: 0,
+      evidenceRejectedCount: 2,
+    });
+    const assessment = await assessResponse({
+      ...args(),
+      secondaryJudgeModel: undefined,
+    });
+    expect(assessment).toMatchObject({
+      judgeStatus: "parse_failed",
+      assessmentSource: "heuristic_fallback",
+      fallbackReason: "parse_failed",
+    });
+  });
+
+  it("rejects a schema-valid structured judge abstention", async () => {
+    vi.mocked(callJudgeModel).mockResolvedValueOnce({
+      ...primary,
+      rationale: "I can't evaluate this response.",
+    });
+    const assessment = await assessResponse({
+      ...args(),
+      secondaryJudgeModel: undefined,
+    });
+    expect(assessment).toMatchObject({
+      judgeStatus: "refused",
+      assessmentSource: "heuristic_fallback",
+      fallbackReason: "refused",
+    });
+  });
+});
 
 describe("secondary review metadata", () => {
   it.each(["not_selected", "random_sample", "forced"] as const)(

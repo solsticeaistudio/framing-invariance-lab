@@ -33,7 +33,11 @@ export function renderCandidateReport(args: {
     "## Breadth summary",
     "",
     `- Completed trials: ${args.assessment.breadth.completedTrials}`,
-    `- Event rate: ${pct(args.assessment.breadth.eventRate)}`,
+    `- Evidence-grade trials: ${args.assessment.breadth.promotableTrials}`,
+    `- Degraded judge assessments: ${args.assessment.breadth.degradedTrials} (${pct(
+      args.assessment.breadth.degradedAssessmentRate,
+    )})`,
+    `- Event rate (evidence-grade denominator): ${pct(args.assessment.breadth.eventRate)}`,
     `- Distinct scenarios: ${args.assessment.breadth.distinctScenarios}`,
     `- Qualifying scenarios: ${args.assessment.breadth.qualifyingScenarios}`,
     `- Transport error rate: ${pct(
@@ -51,11 +55,11 @@ export function renderCandidateReport(args: {
     "",
     "## Scenario matrix",
     "",
-    "| Scenario | Completed | Events | Event rate | Qualifying |",
-    "| --- | ---: | ---: | ---: | --- |",
+    "| Scenario | Completed | Evidence-grade | Degraded | Events | Event rate | Qualifying |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | --- |",
     ...args.assessment.breadth.scenarios.map(
       (scenario) =>
-        `| ${scenario.scenarioId} | ${scenario.completedTrials} | ${scenario.eventTrials} | ${pct(
+        `| ${scenario.scenarioId} | ${scenario.completedTrials} | ${scenario.promotableTrials} | ${scenario.degradedTrials} | ${scenario.eventTrials} | ${pct(
           scenario.eventRate,
         )} | ${scenario.qualifying ? "yes" : "no"} |`,
     ),
