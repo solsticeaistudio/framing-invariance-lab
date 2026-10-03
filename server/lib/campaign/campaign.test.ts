@@ -249,6 +249,17 @@ it("blocks submission readiness when candidate evidence includes degraded judge 
   expect(assessment.checks.find((check) => check.id === "judge_quality")?.pass)
     .toBe(false);
   expect(assessment.blockers).toContain("judge_quality");
+
+  const previouslyPromoted = assessCandidate({
+    campaign,
+    candidate: {
+      ...campaign.candidates[0],
+      stage: "submission_ready",
+    },
+    runs: [run(trials)],
+    minimized: true,
+  });
+  expect(previouslyPromoted.recommendedStage).not.toBe("submission_ready");
 });
 
 describe("minimization and perturbation planning", () => {
