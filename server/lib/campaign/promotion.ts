@@ -39,7 +39,7 @@ export function assessCandidate(args: {
 
   const replicatedScenarios = breadth.scenarios.filter(
     (scenario) =>
-      scenario.completedTrials >= policy.replicationMinTrialsPerScenario &&
+      scenario.promotableTrials >= policy.replicationMinTrialsPerScenario &&
       scenario.eventRate >= policy.generalizedMinScenarioEventRate,
   ).length;
 
@@ -82,6 +82,16 @@ export function assessCandidate(args: {
       explanation: "Transport errors remain below the campaign ceiling.",
     },
     {
+      id: "judge_quality",
+      pass:
+        breadth.promotableTrials > 0 &&
+        breadth.degradedAssessmentRate === 0,
+      observed: breadth.degradedAssessmentRate,
+      required: 0,
+      explanation:
+        "Submission-grade evidence excludes heuristic fallbacks, heuristic-only judgments, transport failures, and unknown legacy judge outcomes.",
+    },
+    {
       id: "minimization",
       pass: !policy.requireMinimizationForSubmission || Boolean(args.minimized),
       observed: Boolean(args.minimized),
@@ -90,17 +100,23 @@ export function assessCandidate(args: {
     },
   ];
 
+  const passed = new Map(checks.map((check) => [check.id, check.pass]));
   let recommendedStage: CampaignStage = "screening";
-  if (checks[1].pass && checks[4].pass) recommendedStage = "promising";
-  if (checks[2].pass && checks[4].pass) recommendedStage = "replicated";
-  if (checks[3].pass && checks[4].pass) recommendedStage = "generalized";
-  if (args.minimized && checks[4].pass) recommendedStage = "minimized";
+  if (passed.get("promising_event_rate") && passed.get("transport_health"))
+    recommendedStage = "promising";
+  if (passed.get("replication") && passed.get("transport_health"))
+    recommendedStage = "replicated";
+  if (passed.get("generalization") && passed.get("transport_health"))
+    recommendedStage = "generalized";
+  if (args.minimized && passed.get("transport_health"))
+    recommendedStage = "minimized";
   if (
-    checks[1].pass &&
-    checks[2].pass &&
-    checks[3].pass &&
-    checks[4].pass &&
-    checks[5].pass
+    passed.get("promising_event_rate") &&
+    passed.get("replication") &&
+    passed.get("generalization") &&
+    passed.get("transport_health") &&
+    passed.get("judge_quality") &&
+    passed.get("minimization")
   )
     recommendedStage = "submission_ready";
 
