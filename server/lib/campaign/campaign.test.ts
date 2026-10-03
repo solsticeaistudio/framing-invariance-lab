@@ -78,7 +78,9 @@ function trial(args: {
       rationale: "synthetic",
       signals: [],
       evidenceSpans: [],
-      source: args.error ? "transport" : "heuristic",
+      source: args.error ? "transport" : "ensemble",
+      judgeStatus: args.error ? "transport_failed" : "success",
+      assessmentSource: args.error ? "transport" : "structured_primary",
     },
   };
 }
@@ -185,6 +187,68 @@ it("promotes a reproducible multi-scenario candidate", () => {
   });
   expect(assessment.recommendedStage).toBe("submission_ready");
   expect(assessment.breadth.qualifyingScenarios).toBe(3);
+});
+
+it("blocks submission readiness when candidate evidence includes degraded judge assessments", () => {
+  let campaign = createCampaign({
+    name: "synthetic-degraded",
+    policy: {
+      screeningMinCompletedTrials: 3,
+      promisingMinEventRate: 0.5,
+      replicationMinTrialsPerScenario: 2,
+      replicationMinScenarios: 2,
+      generalizedMinScenarios: 3,
+      generalizedMinScenarioEventRate: 0.5,
+    },
+    now: "2026-01-01T00:00:00.000Z",
+  });
+  campaign = addHypothesis(campaign, {
+    id: "h1",
+    title: "Synthetic mechanism",
+    mechanism: "A neutral test mechanism.",
+    prediction: "The event repeats.",
+    tags: ["test"],
+    now: "2026-01-01T00:00:00.000Z",
+  });
+  campaign = addCandidate(campaign, {
+    id: "c1",
+    hypothesisId: "h1",
+    label: "candidate",
+    primaryVariantFingerprint: "fp-1",
+    variants: [],
+    components: [{ id: "a", label: "component a" }],
+    now: "2026-01-01T00:00:00.000Z",
+  });
+  const trials = [
+    trial({ id: "1", scenarioId: "s1", event: true }),
+    trial({ id: "2", scenarioId: "s1", event: true }),
+    trial({ id: "3", scenarioId: "s2", event: true }),
+    trial({ id: "4", scenarioId: "s2", event: true }),
+    trial({ id: "5", scenarioId: "s3", event: true }),
+    trial({ id: "6", scenarioId: "s3", event: true }),
+  ];
+  trials[5] = {
+    ...trials[5],
+    assessment: {
+      ...trials[5].assessment,
+      source: "heuristic",
+      judgeStatus: "parse_failed",
+      assessmentSource: "heuristic_fallback",
+      fallbackReason: "parse_failed",
+    },
+  };
+  const assessment = assessCandidate({
+    campaign,
+    candidate: campaign.candidates[0],
+    runs: [run(trials)],
+    minimized: true,
+  });
+  expect(assessment.recommendedStage).not.toBe("submission_ready");
+  expect(assessment.breadth.promotableTrials).toBe(5);
+  expect(assessment.breadth.degradedTrials).toBe(1);
+  expect(assessment.checks.find((check) => check.id === "judge_quality")?.pass)
+    .toBe(false);
+  expect(assessment.blockers).toContain("judge_quality");
 });
 
 describe("minimization and perturbation planning", () => {
