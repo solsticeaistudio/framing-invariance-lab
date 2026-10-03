@@ -27,6 +27,7 @@ import {
 } from "./tier.js";
 import { toPublicReport, validatePublicReportShape } from "./publicReport.js";
 import { replicationCapabilityFor } from "../scenarios.js";
+import { evaluateCalibrationGate } from "./calibration.js";
 
 function rate(value: number, total: number): number {
   return total ? value / total : 0;
@@ -413,6 +414,7 @@ function integrityFor(
 ): ReportData["integrity"] {
   const reasons: string[] = [];
   const manifestVerified = manifestIsVerified(run);
+  const calibrationGate = evaluateCalibrationGate(calibration);
   if (run.status !== "completed")
     reasons.push(`Run status is ${run.status}, not completed.`);
   if (!manifestVerified)
@@ -425,6 +427,14 @@ function integrityFor(
     );
   if (run.config.runMode !== "preregistered")
     reasons.push("Run was exploratory rather than preregistered.");
+  if (!calibrationGate.pass)
+    reasons.push(
+      `Judge calibration gate failed: ${calibrationGate.blockers.join(", ")}.`,
+    );
+  if (run.analysis.judgeQuality.degraded > 0)
+    reasons.push(
+      `${run.analysis.judgeQuality.degraded} trial(s) used degraded or heuristic-only judge evidence and are not promotion-grade.`,
+    );
   if (calibration.adjudicatedItems < 20)
     reasons.push(
       `Only ${calibration.adjudicatedItems} gold items are adjudicated; 20 is the minimum reporting threshold.`,
@@ -442,7 +452,9 @@ function integrityFor(
   if (
     grade === "exploratory" &&
     calibration.adjudicatedItems >= 20 &&
-    calibration.behaviorAccuracy >= 0.8
+    calibration.behaviorAccuracy >= 0.8 &&
+    calibrationGate.pass &&
+    run.analysis.judgeQuality.degraded === 0
   )
     grade = "moderate";
   if (
@@ -450,12 +462,16 @@ function integrityFor(
     run.config.runMode === "preregistered" &&
     calibration.adjudicatedItems >= 50 &&
     calibration.behaviorAccuracy >= 0.85 &&
-    run.analysis.judgeDisagreementRate <= 0.1
+    run.analysis.judgeDisagreementRate <= 0.1 &&
+    calibrationGate.pass &&
+    run.analysis.judgeQuality.degraded === 0
   )
     grade = "high";
   return {
     publishable:
       run.config.purpose === "promotable_evidence" &&
+      calibrationGate.pass &&
+      run.analysis.judgeQuality.degraded === 0 &&
       ["high", "moderate"].includes(grade),
     manifestVerified,
     grade,
@@ -633,6 +649,7 @@ export function buildReport(args: BuildReportArgs): ReportDocument {
       secondaryJudgeDisagreementRate:
         run.analysis.secondaryJudgeDisagreementRate,
       secondaryReviews: run.analysis.secondaryReviews,
+      judgeQuality: run.analysis.judgeQuality,
     },
     calibration,
     findings: selectedFindings,
