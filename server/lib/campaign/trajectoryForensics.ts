@@ -58,6 +58,8 @@ export type TrajectoryForensicsReport = {
   baseline: ForensicsReplayResult;
   minimizationSteps: ForensicsMinimizationStep[];
   replication?: ForensicsReplicationSummary;
+  /** Atomic history groups used during minimization, when supplied. */
+  removalGroups?: number[][];
   generatedAt: string;
 };
 
@@ -115,6 +117,92 @@ export function defaultProtectedTurnIndexes(
   return [...protectedIndexes].sort((a, b) => a - b);
 }
 
+/**
+ * Build atomic user-exchange groups for conversational replay. Each user turn
+ * is grouped with the assistant/tool turns that follow it until the next user
+ * or system turn. Removing an exchange as a unit avoids producing malformed
+ * histories with orphaned assistant replies during live-provider dogfooding.
+ */
+export function buildConversationExchangeRemovalGroups(
+  trajectory: ConversationTrajectory,
+  evaluationTurnIndex: number,
+): number[][] {
+  const groups: number[][] = [];
+  const inputTurns = trajectory.turns.filter(
+    (turn) => turn.index < evaluationTurnIndex,
+  );
+
+  for (let cursor = 0; cursor < inputTurns.length; cursor += 1) {
+    const turn = inputTurns[cursor];
+    if (turn.role === "system") continue;
+
+    if (turn.role !== "user") {
+      groups.push([turn.index]);
+      continue;
+    }
+
+    const group = [turn.index];
+    let follower = cursor + 1;
+    while (follower < inputTurns.length) {
+      const next = inputTurns[follower];
+      if (next.role === "user" || next.role === "system") break;
+      group.push(next.index);
+      follower += 1;
+    }
+    groups.push(group);
+    cursor = follower - 1;
+  }
+
+  return groups;
+}
+
+function buildRemovalUnits(args: {
+  originalInputTurnIndexes: number[];
+  protectedTurnIndexes: number[];
+  removalGroups?: number[][];
+}): number[][] {
+  const original = new Set(args.originalInputTurnIndexes);
+  const protectedSet = new Set(args.protectedTurnIndexes);
+
+  if (!args.removalGroups) {
+    return args.originalInputTurnIndexes
+      .filter((index) => !protectedSet.has(index))
+      .map((index) => [index]);
+  }
+
+  const assigned = new Set<number>();
+  const units: number[][] = [];
+
+  for (const suppliedGroup of args.removalGroups) {
+    const group = [...new Set(suppliedGroup)].sort((a, b) => a - b);
+    if (group.length === 0) continue;
+
+    for (const index of group) {
+      if (!original.has(index)) {
+        throw new Error(
+          `Removal group contains turn ${index}, which is not replayable input history.`,
+        );
+      }
+      if (assigned.has(index)) {
+        throw new Error(
+          `Removal groups overlap at turn ${index}; groups must be disjoint.`,
+        );
+      }
+      assigned.add(index);
+    }
+
+    if (!group.some((index) => protectedSet.has(index))) {
+      units.push(group);
+    }
+  }
+
+  for (const index of args.originalInputTurnIndexes) {
+    if (!assigned.has(index) && !protectedSet.has(index)) units.push([index]);
+  }
+
+  return units;
+}
+
 function partition<T>(items: T[], count: number): T[][] {
   if (items.length === 0) return [];
   const chunkSize = Math.ceil(items.length / count);
@@ -157,6 +245,7 @@ export async function minimizeConversationTrajectory(args: {
   executor: ForensicsReplayExecutor;
   evaluationTurnIndex?: number;
   protectedTurnIndexes?: number[];
+  removalGroups?: number[][];
   replicationAttempts?: number;
   now?: string;
 }): Promise<TrajectoryForensicsReport> {
@@ -195,6 +284,12 @@ export async function minimizeConversationTrajectory(args: {
     }
   }
 
+  const removalUnits = buildRemovalUnits({
+    originalInputTurnIndexes,
+    protectedTurnIndexes,
+    removalGroups: args.removalGroups,
+  });
+
   let retained = [...originalInputTurnIndexes];
   const baseline = await runReplay({
     trajectory: args.trajectory,
@@ -217,6 +312,9 @@ export async function minimizeConversationTrajectory(args: {
       removedTurnIndexes: [],
       baseline,
       minimizationSteps: [],
+      ...(args.removalGroups
+        ? { removalGroups: args.removalGroups.map((group) => [...group]) }
+        : {}),
       generatedAt: args.now ?? new Date().toISOString(),
     };
   }
@@ -225,15 +323,19 @@ export async function minimizeConversationTrajectory(args: {
   let granularity = 2;
 
   while (true) {
-    const removable = retained.filter(
-      (index) => !protectedTurnIndexes.includes(index),
+    const removableUnits = removalUnits.filter((unit) =>
+      unit.every((index) => retained.includes(index)),
     );
-    if (removable.length === 0) break;
+    if (removableUnits.length === 0) break;
 
-    const chunks = partition(removable, Math.min(granularity, removable.length));
+    const chunks = partition(
+      removableUnits,
+      Math.min(granularity, removableUnits.length),
+    );
     let changed = false;
 
-    for (const chunk of chunks) {
+    for (const chunkUnits of chunks) {
+      const chunk = chunkUnits.flat();
       const proposed = retained.filter((index) => !chunk.includes(index));
       const result = await runReplay({
         trajectory: args.trajectory,
@@ -263,15 +365,15 @@ export async function minimizeConversationTrajectory(args: {
     }
 
     if (changed) continue;
-    if (granularity >= removable.length) break;
-    granularity = Math.min(removable.length, granularity * 2);
+    if (granularity >= removableUnits.length) break;
+    granularity = Math.min(removableUnits.length, granularity * 2);
   }
 
-  // Final singleton pass ensures the fixed point is 1-minimal with respect
-  // to the executor's reproduction predicate.
-  for (const index of [...retained]) {
-    if (protectedTurnIndexes.includes(index)) continue;
-    const proposed = retained.filter((item) => item !== index);
+  // Final atomic-unit pass ensures the fixed point is 1-minimal with respect
+  // to the configured removal units and the executor's reproduction predicate.
+  for (const unit of removalUnits) {
+    if (!unit.every((index) => retained.includes(index))) continue;
+    const proposed = retained.filter((item) => !unit.includes(item));
     const result = await runReplay({
       trajectory: args.trajectory,
       executor: args.executor,
@@ -279,10 +381,10 @@ export async function minimizeConversationTrajectory(args: {
       retainedTurnIndexes: proposed,
       protectedTurnIndexes,
       reason: "minimization",
-      label: `Remove source turn ${index}`,
+      label: `Remove source turns ${unit.join(", ")}`,
     });
     steps.push({
-      removedTurnIndexes: [index],
+      removedTurnIndexes: [...unit],
       retainedTurnIndexes: [...proposed],
       reproduced: result.reproduced,
       boundaryState: result.boundaryState,
@@ -331,6 +433,9 @@ export async function minimizeConversationTrajectory(args: {
     baseline,
     minimizationSteps: steps,
     replication,
+    ...(args.removalGroups
+      ? { removalGroups: args.removalGroups.map((group) => [...group]) }
+      : {}),
     generatedAt: args.now ?? new Date().toISOString(),
   };
 }
