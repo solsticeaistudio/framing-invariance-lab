@@ -887,6 +887,7 @@ export type ReportData = {
     judgeDisagreementRate: number;
     secondaryJudgeDisagreementRate: number;
     secondaryReviews: SecondaryReviewSummary;
+    judgeQuality: JudgeQualitySummary;
   };
   calibration: CalibrationReport;
   findings: ReportFinding[];
