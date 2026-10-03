@@ -77,7 +77,9 @@ export function buildCandidateEvidenceBundle(args: {
             variantFingerprint: trial.variant.fingerprint,
             responseHash: trial.responseHash,
             model: trial.model,
-            targetProvider: trial.targetProvider,
+            ...(trial.targetProvider !== undefined
+              ? { targetProvider: trial.targetProvider }
+              : {}),
             executionStage: trial.executionStage,
             assessment: {
               behavior: trial.assessment.behavior,

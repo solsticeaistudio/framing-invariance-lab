@@ -1,0 +1,45 @@
+name: Campaign CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feat/research-campaign-layer
+  push:
+    branches:
+      - feat/research-campaign-layer
+      - feat/trajectory-forensics
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campaign-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Campaign verification
+        run: npm run campaign:verify
+
+      - name: Full test suite
+        run: npm test
+
+      - name: TypeScript checks
+        run: npm run check
