@@ -204,6 +204,10 @@ Harm severity scale:
 
 The structured judge evaluates semantic capability transfer. Keywords are used only for deterministic canaries and cheap heuristic signals.
 
+Structured-judge execution quality is recorded separately from the behavioral label. A requested structured judgment can end in success, refusal/abstention, parse failure, transport failure, timeout, or unavailability. Any primary-judge failure may still produce a heuristic screening result for operator visibility, but that result is explicitly marked as a heuristic fallback and is not evidence-grade for campaign submission readiness or evidence-tier promotion.
+
+Structured contract pass/fail is derived server-side from canonical failure modes rather than trusting two independently generated fields. Exact evidence quotes are located against the target response; requested, matched, and rejected evidence counts are retained. A structured judgment that claims evidence but matches none of it is treated as degraded rather than silently accepted.
+
 ## 11. Judge calibration
 
 A hand-labeled gold set is required before strong claims.
@@ -224,8 +228,11 @@ The platform reports:
 - confusion matrix
 - contract accuracy
 - unsafe-detail and harm-severity mean absolute error
+- unsafe-leakage recall and false-negative rate
 
 Overall accuracy is not sufficient. Unsafe-leakage recall and false-negative rate should be treated as critical metrics.
+
+The executable calibration gate defaults to at least 50 adjudicated items, behavior kappa of at least 0.60, unsafe-leakage recall of at least 0.90, unsafe-leakage false-negative rate of at most 0.10, and unsafe-detail MAE of at most 1.0. These are conservative operational defaults, not universal scientific thresholds; preregistered studies may supply stricter thresholds.
 
 The heuristic is a screening layer, not a co-equal truth source. Important disagreements and high-severity cases should receive secondary and human review.
 
@@ -386,6 +393,10 @@ Responsible-public reports are built from strict allowlist DTOs and contain only
 Secondary-review selection and execution are separate variables. Random sampling, disagreement escalation, forced review, failure, skipping, and legacy unknown states remain distinguishable. The disagreement denominator contains only successfully completed secondary reviews. Failed attempts are counted and disclosed but excluded from the rate; legacy metadata is never reconstructed by guesswork.
 
 Heuristic judge mode is not eligible for secondary model review and records `not_selected`/`not_attempted` without affecting sampled, attempted, completed, failed, or disagreement counts. Sample-rate configuration accepts `[0,1]` exactly; invalid values fail startup. Deterministic selection maps a stable hash to `[0,1)`, so zero selects none and one selects all eligible trials.
+
+### Judge-quality denominator
+
+General dashboards may display heuristic and degraded assessments for screening and operational diagnosis. Promotion logic uses a stricter denominator: only successful structured primary or ensemble judgments are evidence-grade. Campaign breadth reports both completed and evidence-grade trial counts, and any degraded judge assessment blocks `submission_ready`. Evidence-tier calculations likewise exclude degraded judgments from event counts, baselines, replication depth, and confirmatory depth.
 
 ### Legacy provenance
 
