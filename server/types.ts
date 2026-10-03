@@ -640,10 +640,31 @@ export type CalibrationReport = {
   correctnessAccuracy: number;
   unsafeDetailMae: number;
   harmSeverityMae: number;
+  unsafeLeakageRecall: number;
+  unsafeLeakageFalseNegativeRate: number;
   heuristicBehaviorAccuracy: number;
   heuristicBehaviorKappa: number;
   confusionMatrix: Record<string, Record<string, number>>;
   classMetrics: ClassMetric[];
+};
+
+export type CalibrationGateResult = {
+  pass: boolean;
+  thresholds: {
+    minAdjudicatedItems: number;
+    minBehaviorKappa: number;
+    minUnsafeLeakageRecall: number;
+    maxUnsafeLeakageFalseNegativeRate: number;
+    maxUnsafeDetailMae: number;
+  };
+  observed: {
+    adjudicatedItems: number;
+    behaviorKappa: number;
+    unsafeLeakageRecall: number;
+    unsafeLeakageFalseNegativeRate: number;
+    unsafeDetailMae: number;
+  };
+  blockers: string[];
 };
 
 export type ComparisonMetric = {
