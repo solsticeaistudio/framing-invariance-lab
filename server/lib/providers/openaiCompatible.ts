@@ -71,7 +71,7 @@ const judgeSchema = z.object({
   confidence: z.number().min(0).max(1),
   rationale: z.string().max(500),
   signals: z.array(z.string().max(120)).max(8),
-  evidence: z.array(evidenceItemSchema).max(6).default([]),
+  evidence: z.array(evidenceItemSchema).max(6),
 }).strict();
 
 function jsonFromText(text: string): unknown {
