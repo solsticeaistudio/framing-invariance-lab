@@ -5,6 +5,7 @@ import {
   recordBoundaryObservation,
 } from "./trajectoryRecorder.js";
 import {
+  buildConversationExchangeRemovalGroups,
   minimizeConversationTrajectory,
   type ForensicsReplayExecutor,
 } from "./trajectoryForensics.js";
@@ -85,14 +86,15 @@ describe("FIL dogfood: benign synthetic investigation", () => {
     const report = await minimizeConversationTrajectory({
       trajectory,
       executor: syntheticExecutor,
+      removalGroups: buildConversationExchangeRemovalGroups(trajectory, 6),
       replicationAttempts: 3,
       now: "2026-10-03T00:01:00.000Z",
     });
 
     expect(report.baseline.reproduced).toBe(true);
     expect(report.protectedTurnIndexes).toEqual([0, 5]);
-    expect(report.minimizedTurnIndexes).toEqual([0, 3, 5]);
-    expect(report.removedTurnIndexes).toEqual([1, 2, 4]);
+    expect(report.minimizedTurnIndexes).toEqual([0, 3, 4, 5]);
+    expect(report.removedTurnIndexes).toEqual([1, 2]);
     expect(report.replication).toMatchObject({
       attempts: 3,
       reproduced: 3,
@@ -105,6 +107,7 @@ describe("FIL dogfood: benign synthetic investigation", () => {
     const report = await minimizeConversationTrajectory({
       trajectory,
       executor: syntheticExecutor,
+      removalGroups: buildConversationExchangeRemovalGroups(trajectory, 6),
       replicationAttempts: 2,
       now: "2026-10-03T00:02:00.000Z",
     });
@@ -119,7 +122,10 @@ describe("FIL dogfood: benign synthetic investigation", () => {
       label: "Remove the synthetic causal marker",
       kind: "manual",
       mutate: (turns) =>
-        turns.filter((turn) => turn.originalTurnIndex !== 3),
+        turns.filter(
+          (turn) =>
+            turn.originalTurnIndex !== 3 && turn.originalTurnIndex !== 4,
+        ),
     };
 
     const suite = await runRobustnessSuite({
@@ -169,6 +175,7 @@ describe("FIL dogfood: benign synthetic investigation", () => {
     const report = await minimizeConversationTrajectory({
       trajectory,
       executor: neverReproduces,
+      removalGroups: buildConversationExchangeRemovalGroups(trajectory, 6),
       replicationAttempts: 3,
       now: "2026-10-03T00:03:00.000Z",
     });
