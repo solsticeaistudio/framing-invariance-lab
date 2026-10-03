@@ -62,9 +62,7 @@ function buildSyntheticTrajectory() {
 
 const syntheticExecutor: ForensicsReplayExecutor = async (input) => {
   const hasMarker = input.turns.some(
-    (turn) => turn.originalTurnIndex === undefined
-      ? turn.index === 3 && turn.content.includes("MODE=BLUE")
-      : false,
+    (turn) => turn.index === 3 && turn.content.includes("MODE=BLUE"),
   );
   const hasTarget = input.turns.some(
     (turn) => turn.index === 5 && turn.role === "user",
