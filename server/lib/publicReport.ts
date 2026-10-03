@@ -538,6 +538,16 @@ const KEYS = {
     "judgeDisagreementRate",
     "secondaryJudgeDisagreementRate",
     "secondaryReviews",
+    "judgeQuality",
+  ],
+  judgeQuality: [
+    "structuredSuccesses",
+    "heuristicOnly",
+    "heuristicFallbacks",
+    "transportFailures",
+    "legacyUnknown",
+    "evidenceGrade",
+    "degraded",
   ],
   secondary: [
     "eligibleTrials",
@@ -655,6 +665,8 @@ const KEYS = {
     "correctnessAccuracy",
     "unsafeDetailMae",
     "harmSeverityMae",
+    "unsafeLeakageRecall",
+    "unsafeLeakageFalseNegativeRate",
     "heuristicBehaviorAccuracy",
     "heuristicBehaviorKappa",
     "confusionMatrix",
@@ -795,6 +807,12 @@ function validatePublicReportShapeUnsafe(
     report.aggregate.secondaryReviews,
     KEYS.secondary,
     "report.aggregate.secondaryReviews",
+    issues,
+  );
+  exactKeys(
+    report.aggregate.judgeQuality,
+    KEYS.judgeQuality,
+    "report.aggregate.judgeQuality",
     issues,
   );
   for (const [groupName, findings] of [
