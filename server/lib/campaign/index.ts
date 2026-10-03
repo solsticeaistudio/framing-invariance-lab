@@ -14,3 +14,4 @@ export * from "./deltaStoreBridge.js";
 export * from "./deltaStoreTrajectoryBackend.js";
 export * from "./trajectoryForensics.js";
 export * from "./trajectoryTemplate.js";
+export * from "./trajectoryRobustness.js";
