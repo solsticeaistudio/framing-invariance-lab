@@ -1,0 +1,31 @@
+{
+  "mode": "sandbox",
+  "scope": {
+    "authorizedTargetConfirmed": false,
+    "accountEligibilityConfirmed": false,
+    "requestedModelInScope": false
+  },
+  "execution": {
+    "modelCallsPlanned": 0,
+    "automationEnabled": false,
+    "automatedTestingPermissionConfirmed": null,
+    "maximumPermittedCallsKnown": false,
+    "plannedCallsWithinPermittedLimit": false,
+    "stopOnTransportOrJudgeError": true
+  },
+  "confidentiality": {
+    "protectedProgramMaterialsInUse": false,
+    "externalSimulatorReceivesProtectedMaterials": false,
+    "externalEvaluatorReceivesProtectedMaterials": false,
+    "automaticThirdPartyUpload": false,
+    "telemetryDisabled": true,
+    "publicCiOrLogsContainProtectedMaterials": false,
+    "privateArtifactsStoredOutsideApprovedEnvironment": false
+  },
+  "evidence": {
+    "rawResultsLinkedToSourceRequestIds": true,
+    "judgeIndependenceChecked": true,
+    "humanReviewRequiredBeforeSubmission": true,
+    "externalScoresClearlyLabeledUnverified": true
+  }
+}
