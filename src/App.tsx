@@ -9,6 +9,7 @@ import { ScenarioEditor } from "./components/ScenarioEditor";
 import { TrialExplorer } from "./components/TrialExplorer";
 import { StudyPanel } from "./components/StudyPanel";
 import { AuditPanel } from "./components/AuditPanel";
+import { CampaignPanel } from "./components/CampaignPanel";
 import type {
   EvalRun,
   Meta,
@@ -28,7 +29,8 @@ type Tab =
   | "report"
   | "studies"
   | "runs"
-  | "audit";
+  | "audit"
+  | "campaigns";
 
 type Preview = {
   total: number;
@@ -334,6 +336,7 @@ export default function App() {
                 ["studies", "08", "Study registry"],
                 ["runs", "09", "Run archive"],
                 ["audit", "10", "Audit log"],
+                ["campaigns", "11", "Research campaigns"],
               ] as Array<[Tab, string, string]>
             ).map(([tab, number, label]) => (
               <button
@@ -1127,6 +1130,7 @@ export default function App() {
             />
           )}
           {activeTab === "audit" && <AuditPanel />}
+          {activeTab === "campaigns" && <CampaignPanel runs={runs} />}
         </main>
       </div>
 
