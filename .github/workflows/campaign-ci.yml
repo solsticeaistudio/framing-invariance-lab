@@ -39,6 +39,9 @@ jobs:
       - name: Campaign verification
         run: npm run campaign:verify
 
+      - name: Metadata-only research preflight smoke
+        run: npm run research:preflight -- examples/research-preflight.toy.json
+
       - name: Full test suite
         run: npm test
 
