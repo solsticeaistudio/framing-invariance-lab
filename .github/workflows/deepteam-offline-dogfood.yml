@@ -1,0 +1,79 @@
+name: DeepTeam Offline Dogfood
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "server/lib/campaign/deepteam*"
+      - "scripts/deepteam-offline-dogfood.py"
+      - "scripts/import-deepteam-assessment.ts"
+      - "docs/DEEPTEAM_BRIDGE.md"
+      - ".github/workflows/deepteam-offline-dogfood.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FIL and upstream DeepTeam
+        run: |
+          npm ci
+          python -m pip install --no-cache-dir "deepteam==1.0.9"
+
+      - name: Generate native DeepTeam assessment with a toy target
+        env:
+          DEEPEVAL_TELEMETRY_OPT_OUT: "YES"
+          DEEPTEAM_TELEMETRY_OPT_OUT: "YES"
+          DO_NOT_TRACK: "1"
+        run: |
+          python scripts/deepteam-offline-dogfood.py "$RUNNER_TEMP/deepteam-native"
+
+      - name: Import and independently adjudicate
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$RUNNER_TEMP/deepteam-native" -maxdepth 1 -type f -name '*.json' > "$RUNNER_TEMP/deepteam-files"
+          test "$(wc -l < "$RUNNER_TEMP/deepteam-files")" -eq 1
+          source_file="$(cat "$RUNNER_TEMP/deepteam-files")"
+          npm run deepteam:import -- "$source_file" "$RUNNER_TEMP/fil-toy-import" --toy-oracle
+
+      - name: Verify expected independent ground truth
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const root = path.join(process.env.RUNNER_TEMP, 'fil-toy-import');
+          const oracle = JSON.parse(fs.readFileSync(path.join(root, 'toy-oracle-summary.json'), 'utf8'));
+          const source = JSON.parse(fs.readFileSync(path.join(root, 'import-summary.json'), 'utf8'));
+          const assert = (condition, reason) => { if (!condition) throw new Error(reason); };
+          assert(oracle.counts.total === 4, 'Expected four real DeepTeam cases');
+          assert(oracle.counts.contractPass === 2, 'Expected two protected outcomes');
+          assert(oracle.counts.contractFail === 2, 'Expected two fictional boundary failures');
+          assert(oracle.counts.sourceJudgeAgreement === 4, 'Expected source and independent judgments to agree');
+          assert(oracle.counts.sourceJudgeDisagreement === 0, 'Unexpected judge discrepancy');
+          assert(source.source.caseCount === 4, 'FIL source count mismatch');
+          assert(source.scientificTier === 'none' && source.trustLevel === 'external_unverified',
+            'Improper evidence promotion');
+          assert(source.cases.every((entry) => entry.turnCount > 0 && entry.trajectoryHash.length === 64),
+            'Invalid imported trajectories');
+          console.log('Native DeepTeam → FIL independent toy-oracle smoke PASSED (4 cases).');
+          NODE
