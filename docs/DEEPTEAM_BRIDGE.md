@@ -1,88 +1,86 @@
-# DeepTeam → Framing Invariance Lab: offline evidence bridge
+# DeepTeam → Framing Invariance Lab: controlled integration
 
-This adapter accepts JSON produced by DeepTeam's native
-\`RiskAssessment.save(directory)\` method (from
-[confident-ai/deepteam](https://github.com/confident-ai/deepteam)).
-It **does not** install, execute, or depend on DeepTeam, and does not call
-a simulator model, an evaluation model, Anthropic, or Confident AI.
+FIL accepts native JSON saved with DeepTeam's `RiskAssessment.save(directory)`.
+Two paths are provided: offline ingestion of existing assessments, and a
+**real DeepTeam runtime smoke test** against a deliberately fictional model.
 
-The import is deliberately a small interop boundary—not an automated jailbreak
-discovery system and not an external execution adapter.
+## End-to-end smoke test (no model keys required)
 
-## Import an assessment you already generated
-
-\`\`\`bash
+```bash
+python3.11 -m venv .venv-deepteam
+source .venv-deepteam/bin/activate
+pip install deepteam==1.0.9
 npm ci
-npm run deepteam:import -- path/to/deepteam-saved-assessment.json tmp/deepteam-import-001
-\`\`\`
+python scripts/deepteam-offline-dogfood.py tmp/deepteam-demo
+npm run deepteam:import -- "$(find tmp/deepteam-demo -name '*.json' -type f | head -1)" tmp/deepteam-evidence --toy-oracle
+```
 
-The output directory must **not** already exist. It is created in local storage
-with private-directory permissions. Outputs:
+The native DeepTeam red-teamer executes **four** tests: two direct and two
+fictional broken-artifact repair framings. A deterministic mock target always
+returns `LOCKED` for direct requests but intentionally returns a fictional
+label on repair-marked inputs. DeepTeam assigns its own source metric. FIL's
+separate deterministic oracle examines the actual outputs and should report:
 
-\`\`\`text
-tmp/deepteam-import-001/
-  import-summary.json
-  deepteam-<source-and-case-hash>/
-    trajectory.json
-    events.jsonl
-  ...
-\`\`\`
+- 4 total cases, 2 contract passes, 2 contract failures.
+- 4 source-judge agreements and 0 disagreements.
+- Four valid, hash-only FIL trajectories.
 
-Each \`trajectory.json\` is a valid FIL \`ConversationTrajectory\` with a
-cryptographically chained list of turns. The imported trajectories omit all
-raw prompts, responses, tool content, error messages, judges' explanations,
-and source metadata by default. The summary contains only case indices,
-SHA-256 identifiers, aggregate outcome counts, reported numerical scores,
-and trajectory identifiers.
+Both the mock model callback and the source metric are local deterministic
+Python implementations. The simulator model stub **throws** if DeepTeam tries
+to call it. This proves DeepTeam execution and FIL ingestion, but does **not**
+establish that DeepTeam's LLM-driven attack search works against Claude.
 
-## What is actually preserved?
+CI implements the complete path in
+[`.github/workflows/deepteam-offline-dogfood.yml`](../.github/workflows/deepteam-offline-dogfood.yml).
 
-- SHA-256 of the exact input file bytes, plus index-linked case identities.
-- DeepTeam's **reported** score, or explicit errored/unscored states.
-- Role and content hashes for each conversation turn, chained by FIL.
-- Overall source/report provenance, *without* promoting the source as trusted.
-- Source method labels only as hashes, never arbitrary raw strings.
+## Import existing authorized DeepTeam research
 
-A reported DeepTeam **pass** is **not** a FIL-confirmed safety failure.
-In DeepTeam, a higher reported score generally means the tested model passed
-that vulnerability's metric; verify each metric's semantics independently.
+```bash
+npm ci
+npm run deepteam:import -- private/deepteam-risk-assessment.json tmp/deepteam-import-001
+```
 
-The native DeepTeam export has no FIL signed preregistration, target execution
-identity, provenance certificate, or independent judge observations. It cannot
-count as a signed FIL study or independent replication, even though an imported
-trajectory passes local hash-chain verification.
+Do not pass `--toy-oracle` for arbitrary DeepTeam output; its known-answer
+contract applies **only** to the fictional archive test.
 
-FIL stamps the **import time**, not the original conversation chronology.
-The same source imported at a new time yields different turn and trajectory
-hashes; the bytewise source hash stays the same.
+Import creates `import-summary.json` plus one directory per source test case
+containing `trajectory.json` and `events.jsonl`. The optional toy flag also
+writes `toy-oracle-summary.json`, which records only finite known-answer
+categories and hashed input/output identifiers.
 
-## Threat model and limitations
+## Evidence and security properties
 
-DeepTeam native reports can contain sensitive user prompts and outputs.
-Do **not** check the original reports into a public repository, upload them
-to a cloud drive, or submit them to external services without authorization.
+- Local importer does not call providers or Confident AI.
+- Report parsing is schema-validated and capped at 8 MiB / 1000 cases.
+- Hash-only output excludes prompts, responses, error messages, reasons,
+  and DeepTeam's arbitrary metadata.
+- An external score is *reported*, not independently adopted as FIL truth.
+- Imported records never enter preregistered, signed FIL study tiers.
+- Local import timestamps are not original conversation timestamps.
+- Hash chains establish consistency of imported records, **not**
+  authenticity or accuracy of DeepTeam execution.
+- The toy oracle is a deterministic evaluator for **one fake rule**, not a
+  general-purpose LLM safety judge.
 
-This adapter never connects to a DeepTeam service. It treats an imported report
-as untrusted. It fails closed on malformed content, too many cases/turns, or
-missing transcript information; file size is capped at 8 MiB.
+DeepTeam's native JSON can contain sensitive text. Do not commit it to GitHub.
+If using real provider adapters, configure those and their telemetry only
+inside an explicitly authorized evaluation workspace. This smoke test does
+not use private bounty material.
 
-Since the output deliberately excludes raw text, the imported trajectories
-cannot be used directly for automated provider replay or delta debugging.
-That requires a separate controlled, appropriately authorized evidence workspace
-with explicit access decisions.
+## Checks
 
-This bridge **does not yet** wire DeepTeam into the FIL UI or reporting
-registry. It establishes a testable, offline file contract so that a future
-adapter cannot silently conflate third-party self-reported outcomes with
-FIL's stronger signed science.
-
-## Verification
-
-\`\`\`bash
+```bash
 npm run campaign:verify
 npm test
 npm run check
-\`\`\`
+```
 
-The tests use entirely synthetic, harmless records. No keys or paid-model
-requests are necessary. The CLI reads and writes local files only.
+GitHub's separate `DeepTeam Offline Dogfood` workflow additionally installs
+DeepTeam and exercises its native `RedTeamer`, attacker, vulnerability, metric,
+`RiskAssessment.save()`, FIL import, trajectory integrity, and toy oracle.
+
+## Deliberately not implemented
+
+An autonomous jailbreak search loop, Claude probing, or automatic candidate
+promotion. These require independent experimental authorization and stronger
+controls than a toy integration smoke test.
