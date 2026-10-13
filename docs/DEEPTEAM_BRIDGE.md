@@ -9,7 +9,7 @@ Two paths are provided: offline ingestion of existing assessments, and a
 ```bash
 python3.11 -m venv .venv-deepteam
 source .venv-deepteam/bin/activate
-pip install deepteam==1.0.9
+pip install deepteam==1.0.9 'sentry-sdk>=2,<3'
 npm ci
 python scripts/deepteam-offline-dogfood.py tmp/deepteam-demo
 npm run deepteam:import -- "$(find tmp/deepteam-demo -name '*.json' -type f | head -1)" tmp/deepteam-evidence --toy-oracle
@@ -24,6 +24,11 @@ separate deterministic oracle examines the actual outputs and should report:
 - 4 total cases, 2 contract passes, 2 contract failures.
 - 4 source-judge agreements and 0 disagreements.
 - Four valid, hash-only FIL trajectories.
+
+DeepTeam 1.0.9 currently imports `sentry_sdk` without declaring it in its
+package dependencies; the setup installs that dependency explicitly. Telemetry
+is disabled for the smoke test with `DEEPTEAM_TELEMETRY_OPT_OUT=YES` and
+`DEEPEVAL_TELEMETRY_OPT_OUT=YES`.
 
 Both the mock model callback and the source metric are local deterministic
 Python implementations. The simulator model stub **throws** if DeepTeam tries
