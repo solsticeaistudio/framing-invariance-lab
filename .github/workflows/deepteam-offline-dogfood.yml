@@ -36,7 +36,7 @@ jobs:
       - name: Install FIL and upstream DeepTeam
         run: |
           npm ci
-          python -m pip install --no-cache-dir "deepteam==1.0.9"
+          python -m pip install --no-cache-dir "deepteam==1.0.9" "sentry-sdk>=2,<3"
 
       - name: Generate native DeepTeam assessment with a toy target
         env:
