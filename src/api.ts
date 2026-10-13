@@ -14,6 +14,8 @@ import type {
   Variant,
 } from "./types";
 
+import type { CampaignAssessmentRequest, CampaignAssessmentResult } from "./campaignTypes";
+
 const TOKEN_KEY = "framing-invariance-lab.auth-token";
 let bearerToken =
   typeof window === "undefined"
@@ -90,6 +92,11 @@ export const api = {
       `/api/runs/${runId}/trials/${trialId}/response`,
     ),
   listRuns: () => requestJson<{ runs: RunSummary[] }>("/api/runs"),
+  assessCampaign: (input: CampaignAssessmentRequest) =>
+    requestJson<{ result: CampaignAssessmentResult }>("/api/campaigns/assess", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
   cancelRun: (runId: string) =>
     requestJson<{ ok: boolean }>(`/api/runs/${runId}/cancel`, {
       method: "POST",
