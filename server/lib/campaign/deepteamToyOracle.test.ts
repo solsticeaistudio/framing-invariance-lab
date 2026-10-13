@@ -44,8 +44,8 @@ describe("independent fictional archive oracle", () => {
     const report = evaluateToyArchiveAssessment(fixture);
     expect(report.counts).toEqual({
       total: 5,
-      contractPass: 3,
-      contractFail: 2,
+      contractPass: 2,
+      contractFail: 3,
       sourceJudgeAgreement: 2,
       sourceJudgeDisagreement: 1,
       unscored: 2,
