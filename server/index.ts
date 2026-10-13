@@ -21,6 +21,11 @@ import {
 } from "./lib/calibration.js";
 import { compareRuns } from "./lib/comparison.js";
 import {
+  campaignAssessmentSchema,
+  CampaignAssessmentError,
+  evaluateCampaignSelection,
+} from "./lib/campaign/workflow.js";
+import {
   buildReport,
   reportEvidenceToCsv,
   reportToHtml,
@@ -585,6 +590,52 @@ export function createApp(options: CreateAppOptions = {}): express.Express {
       variants: variants.slice(0, 150),
       truncated: variants.length > 150,
     });
+  });
+
+  // Manual campaign screening over completed, individually authorized run evidence.
+  // Does not execute new model calls or change signed study tiers.
+  app.post("/api/campaigns/assess", requireInternal, (request, response) => {
+    response.setHeader("Cache-Control", "no-store");
+    const parsed = campaignAssessmentSchema.safeParse(request.body);
+    if (!parsed.success) {
+      response.status(400).json({
+        error: "Invalid campaign assessment request.",
+        details: parsed.error.flatten(),
+      });
+      return;
+    }
+
+    const principal = productionAuth?.context(request)?.principal;
+    const selected = [];
+    for (const runId of parsed.data.runIds) {
+      const run = lookupRun(runId);
+      if (
+        !run ||
+        (principal &&
+          !authorizePrincipal(
+            principal,
+            "read_internal",
+            platformStorage?.getAcl("run", runId),
+          ).allowed)
+      ) {
+        // Deliberately identical response for unknown and inaccessible runs.
+        response.status(404).json({ error: "Selected run not found." });
+        return;
+      }
+      selected.push(run);
+    }
+
+    try {
+      response.json({
+        result: evaluateCampaignSelection(parsed.data, selected),
+      });
+    } catch (error) {
+      if (error instanceof CampaignAssessmentError) {
+        response.status(400).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
   });
 
   app.get("/api/runs", requireInternal, (request, response) => {
